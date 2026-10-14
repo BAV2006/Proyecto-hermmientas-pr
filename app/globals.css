@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+/* Paleta Café Aroma (según el documento del proyecto) */
+@theme {
+  --color-navy: #16123f;
+  --color-teal: #75c9b7;
+  --color-lime: #abd699;
+  --color-lemon: #ffe26a;
+  --color-mint: #c7ddcc;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  color: var(--color-navy);
+  font-family: var(--font-sans);
+}
