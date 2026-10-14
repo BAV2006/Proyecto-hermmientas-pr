@@ -11,3 +11,158 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+
+enum Rol {
+  ADMINISTRADOR
+  ADMINISTRATIVO
+  MENSAJERO
+  CLIENTE
+}
+
+enum EstadoRegistro {
+  ACTIVO
+  INACTIVO
+}
+
+enum EstadoPedido {
+  SOLICITADO
+  PENDIENTE
+  ENTREGADO
+  CANCELADO
+}
+
+enum TipoNotificacion {
+  PEDIDO
+  PROMOCION
+  STOCK
+  SISTEMA
+}
+
+model Usuario {
+  id               Int            @id @default(autoincrement())
+  nombre           String         @db.VarChar(100)
+  nombreUsuario    String?        @unique @db.VarChar(30)
+  correo           String         @unique @db.VarChar(120)
+  contrasenaHash   String         @db.VarChar(255)
+  telefono         String?        @db.VarChar(20)
+  rol              Rol            @default(CLIENTE)
+  estado           EstadoRegistro @default(ACTIVO)
+  intentosFallidos Int            @default(0)
+  bloqueadoHasta   DateTime?
+  ultimoAcceso     DateTime?
+  creadoEn         DateTime       @default(now())
+  actualizadoEn    DateTime       @updatedAt
+
+  pedidosComoCliente    Pedido[]       @relation("PedidosCliente")
+  entregasComoMensajero Pedido[]       @relation("PedidosMensajero")
+  notificaciones        Notificacion[]
+
+  @@index([rol, estado])
+  @@map("usuarios")
+}
+
+model Categoria {
+  id            Int            @id @default(autoincrement())
+  nombre        String         @unique @db.VarChar(60)
+  estado        EstadoRegistro @default(ACTIVO)
+  creadoEn      DateTime       @default(now())
+  actualizadoEn DateTime       @updatedAt
+
+  productos Producto[]
+
+  @@map("categorias")
+}
+
+model Producto {
+  id            Int            @id @default(autoincrement())
+  nombre        String         @db.VarChar(100)
+  descripcion   String?        @db.VarChar(300)
+  precio        Int
+  stock         Int            @default(0)
+  stockMinimo   Int            @default(15)
+  destacado     Boolean        @default(false)
+  imagen        String?        @db.VarChar(500)
+  estado        EstadoRegistro @default(ACTIVO)
+  categoriaId   Int
+  creadoEn      DateTime       @default(now())
+  actualizadoEn DateTime       @updatedAt
+
+  categoria Categoria       @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  detalles  DetallePedido[]
+
+  @@unique([categoriaId, nombre])
+  @@index([categoriaId])
+  @@index([estado])
+  @@map("productos")
+}
+
+model Pedido {
+  id                Int          @id @default(autoincrement())
+  fecha             DateTime     @default(now())
+  estado            EstadoPedido @default(SOLICITADO)
+  ubicacion         String       @db.VarChar(200)
+  notas             String?      @db.VarChar(300)
+  total             Int
+  motivoCancelacion String?      @db.VarChar(200)
+  entregadoEn       DateTime?
+  clienteId         Int
+  mensajeroId       Int?
+  actualizadoEn     DateTime     @updatedAt
+
+  cliente        Usuario         @relation("PedidosCliente", fields: [clienteId], references: [id], onDelete: Restrict)
+  mensajero      Usuario?        @relation("PedidosMensajero", fields: [mensajeroId], references: [id], onDelete: SetNull)
+  detalles       DetallePedido[]
+  factura        Factura?
+  notificaciones Notificacion[]
+
+  @@index([clienteId])
+  @@index([mensajeroId])
+  @@index([estado, fecha])
+  @@map("pedidos")
+}
+
+model DetallePedido {
+  id             Int @id @default(autoincrement())
+  cantidad       Int
+  precioUnitario Int
+  pedidoId       Int
+  productoId     Int
+
+  pedido   Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  producto Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+
+  @@unique([pedidoId, productoId])
+  @@index([productoId])
+  @@map("detalles_pedido")
+}
+
+model Factura {
+  id        Int       @id @default(autoincrement())
+  numero    String    @unique @db.VarChar(20)
+  emitidaEn DateTime  @default(now())
+  total     Int
+  enviadaEn DateTime?
+  pedidoId  Int       @unique
+
+  pedido Pedido @relation(fields: [pedidoId], references: [id], onDelete: Restrict)
+
+  @@map("facturas")
+}
+
+model Notificacion {
+  id        Int              @id @default(autoincrement())
+  tipo      TipoNotificacion @default(SISTEMA)
+  titulo    String           @db.VarChar(100)
+  mensaje   String           @db.VarChar(300)
+  leida     Boolean          @default(false)
+  creadaEn  DateTime         @default(now())
+  usuarioId Int
+  pedidoId  Int?
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  pedido  Pedido? @relation(fields: [pedidoId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId, leida])
+  @@map("notificaciones")
+}
