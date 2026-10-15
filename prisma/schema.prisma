@@ -54,13 +54,14 @@ model Usuario {
   creadoEn         DateTime       @default(now())
   actualizadoEn    DateTime       @updatedAt
 
-  pedidosComoCliente    Pedido[]       @relation("PedidosCliente")
-  entregasComoMensajero Pedido[]       @relation("PedidosMensajero")
-  notificaciones        Notificacion[]
+  pedidosComoCliente    Pedido[] @relation("PedidosCliente")
+  entregasComoMensajero Pedido[] @relation("PedidosMensajero")
+  notificaciones Notificacion[]
 
   @@index([rol, estado])
   @@map("usuarios")
 }
+
 
 model Categoria {
   id            Int            @id @default(autoincrement())
@@ -68,9 +69,7 @@ model Categoria {
   estado        EstadoRegistro @default(ACTIVO)
   creadoEn      DateTime       @default(now())
   actualizadoEn DateTime       @updatedAt
-
   productos Producto[]
-
   @@map("categorias")
 }
 
@@ -88,14 +87,14 @@ model Producto {
   creadoEn      DateTime       @default(now())
   actualizadoEn DateTime       @updatedAt
 
-  categoria Categoria       @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
-  detalles  DetallePedido[]
-
+  categoria Categoria @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  detalles DetallePedido[]
   @@unique([categoriaId, nombre])
   @@index([categoriaId])
   @@index([estado])
   @@map("productos")
 }
+
 
 model Pedido {
   id                Int          @id @default(autoincrement())
@@ -110,12 +109,11 @@ model Pedido {
   mensajeroId       Int?
   actualizadoEn     DateTime     @updatedAt
 
-  cliente        Usuario         @relation("PedidosCliente", fields: [clienteId], references: [id], onDelete: Restrict)
-  mensajero      Usuario?        @relation("PedidosMensajero", fields: [mensajeroId], references: [id], onDelete: SetNull)
-  detalles       DetallePedido[]
-  factura        Factura?
+  cliente   Usuario  @relation("PedidosCliente", fields: [clienteId], references: [id], onDelete: Restrict)
+  mensajero Usuario? @relation("PedidosMensajero", fields: [mensajeroId], references: [id], onDelete: SetNull)
+  detalles DetallePedido[]
   notificaciones Notificacion[]
-
+  factura Factura?
   @@index([clienteId])
   @@index([mensajeroId])
   @@index([estado, fecha])
