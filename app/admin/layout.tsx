@@ -1,4 +1,4 @@
-import NavbarAdmin from "@/components/NavbarAdmin";
+import NavbarAdmin from "@/src/commons/componets/NavbarAdmin";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import Dashboard from "@/src/features/dashboard/componets/Dashboard";
 
 export default function Page() {
-  redirect("/admin/dashboard");
+  return <Dashboard />;
 }
