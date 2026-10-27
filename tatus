@@ -1,0 +1,661 @@
+[1mdiff --git a/LEEME.md b/LEEME.md[m
+[1mnew file mode 100644[m
+[1mindex 0000000..57baf22[m
+[1m--- /dev/null[m
+[1m+++ b/LEEME.md[m
+[36m@@ -0,0 +1,56 @@[m
+[32m+[m[32m# Feature `category` — proyecto Café Aroma[m
+[32m+[m
+[32m+[m[32mMisma estructura por capas que muestra el profesor (dominio → aplicación → infraestructura → presentación).[m
+[32m+[m
+[32m+[m[32m## 1. Copiar archivos[m
+[32m+[m[32mDescomprime este zip en la RAÍZ del proyecto (donde están `app/`, `src/`, `prisma/`).[m
+[32m+[m[32m- `app/api/categoria/...`  → rutas de la API[m
+[32m+[m[32m- `src/features/category/...` → toda la feature[m
+[32m+[m
+[32m+[m[32mLa carpeta `commons_opcional/` NO se copia entera: úsala solo para los archivos que no tengas[m
+[32m+[m[32m(`interfaces.ts`, `localizations.ts`, `utils/logger.ts`). Si ya los tienes, solo agrega lo que falte:[m
+[32m+[m[32m- `IRequestParams` en `src/commons/interfaces.ts`[m
+[32m+[m[32m- dentro del objeto `aroma`: `errors.serverError`, `errors.unprocessableContent`, `errors.notFound` y el bloque `category`[m
+[32m+[m
+[32m+[m[32m## 2. Modelo de Prisma (agregar a `prisma/schema.prisma`)[m
+[32m+[m[32m```prisma[m
+[32m+[m[32mmodel Category {[m
+[32m+[m[32m  id        Int      @id @default(autoincrement())[m
+[32m+[m[32m  name      String[m
+[32m+[m[32m  url       String[m
+[32m+[m[32m  createdAt DateTime @default(now())[m
+[32m+[m[32m}[m
+[32m+[m[32m```[m
+[32m+[m[32mLuego:[m
+[32m+[m[32m```[m
+[32m+[m[32mpnpm prisma migrate dev --name crear-categoria[m
+[32m+[m[32mpnpm prisma generate[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m## 3. Dependencias (si faltan)[m
+[32m+[m[32m```[m
+[32m+[m[32mpnpm add react-hook-form zod @hookform/resolvers[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m## 4. Cliente de Prisma[m
+[32m+[m[32m`prisma-category.repository.ts` importa `prisma` desde `@/lib/prisma`.[m
+[32m+[m[32mSi tu archivo exporta el cliente con otro nombre o ruta, solo cambia esa línea.[m
+[32m+[m
+[32m+[m[32m## 5. Usar la lista en la página[m
+[32m+[m[32m`app/admin/categorias/page.tsx`:[m
+[32m+[m[32m```tsx[m
+[32m+[m[32mimport CategoryList from '@/src/features/category/components/CategoryList';[m
+[32m+[m
+[32m+[m[32mexport default function CategoriasPage() {[m
+[32m+[m[32m  return <CategoryList />;[m
+[32m+[m[32m}[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32m## Endpoints[m
+[32m+[m[32m| Método | Ruta | Acción |[m
+[32m+[m[32m|---|---|---|[m
+[32m+[m[32m| GET | /api/categoria | Listar |[m
+[32m+[m[32m| POST | /api/categoria | Crear |[m
+[32m+[m[32m| GET | /api/categoria/:id | Obtener por id |[m
+[32m+[m[32m| PUT | /api/categoria/:id | Actualizar |[m
+[32m+[m[32m| DELETE | /api/categoria/:id | Eliminar |[m
+[1mdiff --git a/app/api/categoria/[id]/route.ts b/app/api/categoria/[id]/route.ts[m
+[1mindex 0d97844..1d8cd7a 100644[m
+[1m--- a/app/api/categoria/[id]/route.ts[m
+[1m+++ b/app/api/categoria/[id]/route.ts[m
+[36m@@ -1,75 +1,9 @@[m
+[31m-import { NextResponse } from "next/server";[m
+[31m-import { prisma } from "@/src/commons/utils/prisma";[m
+[31m-import { jsonError, parseId, prismaErrorCode } from "@/src/commons/utils/api-response";[m
+[31m-import { aroma } from "@/src/commons/localizations";[m
+[31m-import { categorySchema } from "@/src/features/category/schema";[m
+[31m-import { toCategory } from "@/src/features/category/mapper";[m
+[31m-[m
+[31m-type Context = { params: Promise<{ id: string }> };[m
+[31m-[m
+[31m-// GET /api/categoria/:id -> una categoría[m
+[31m-export async function GET(_request: Request, { params }: Context) {[m
+[31m-  const id = parseId((await params).id);[m
+[31m-  if (id === null) return jsonError(aroma.errors.notFound, 404);[m
+[31m-[m
+[31m-  try {[m
+[31m-    const row = await prisma.categoria.findUnique({ where: { id } });[m
+[31m-    if (!row) return jsonError(aroma.errors.notFound, 404);[m
+[31m-    return NextResponse.json(toCategory(row));[m
+[31m-  } catch {[m
+[31m-    return jsonError(aroma.errors.serverError, 500);[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-// PUT /api/categoria/:id -> actualiza una categoría[m
+[31m-export async function PUT(request: Request, { params }: Context) {[m
+[31m-  const id = parseId((await params).id);[m
+[31m-  if (id === null) return jsonError(aroma.errors.notFound, 404);[m
+[31m-[m
+[31m-  let body: unknown;[m
+[31m-  try {[m
+[31m-    body = await request.json();[m
+[31m-  } catch {[m
+[31m-    return jsonError(aroma.errors.unprocessableContent, 422);[m
+[31m-  }[m
+[31m-[m
+[31m-  const parsed = categorySchema.safeParse(body);[m
+[31m-  if (!parsed.success) {[m
+[31m-    return jsonError(aroma.errors.unprocessableContent, 422);[m
+[31m-  }[m
+[31m-  const { name, status } = parsed.data;[m
+[31m-[m
+[31m-  try {[m
+[31m-    const duplicated = await prisma.categoria.findFirst({[m
+[31m-      where: { nombre: { equals: name, mode: "insensitive" }, NOT: { id } },[m
+[31m-    });[m
+[31m-    if (duplicated) return jsonError(aroma.errors.duplicated, 409);[m
+[31m-[m
+[31m-    const row = await prisma.categoria.update({[m
+[31m-      where: { id },[m
+[31m-      data: { nombre: name, estado: status },[m
+[31m-    });[m
+[31m-    return NextResponse.json(toCategory(row));[m
+[31m-  } catch (error) {[m
+[31m-    const code = prismaErrorCode(error);[m
+[31m-    if (code === "P2025") return jsonError(aroma.errors.notFound, 404);[m
+[31m-    if (code === "P2002") return jsonError(aroma.errors.duplicated, 409);[m
+[31m-    return jsonError(aroma.errors.updated, 500);[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-// DELETE /api/categoria/:id -> elimina una categoría (si no tiene productos)[m
+[31m-export async function DELETE(_request: Request, { params }: Context) {[m
+[31m-  const id = parseId((await params).id);[m
+[31m-  if (id === null) return jsonError(aroma.errors.notFound, 404);[m
+[31m-[m
+[31m-  try {[m
+[31m-    await prisma.categoria.delete({ where: { id } });[m
+[31m-    return NextResponse.json({ ok: true });[m
+[31m-  } catch (error) {[m
+[31m-    const code = prismaErrorCode(error);[m
+[31m-    if (code === "P2025") return jsonError(aroma.errors.notFound, 404);[m
+[31m-    if (code === "P2003") return jsonError(aroma.errors.deleteInUse, 409);[m
+[31m-    return jsonError(aroma.errors.deleted, 500);[m
+[31m-  }[m
+[31m-}[m
+[32m+[m[32mimport {[m
+[32m+[m[32m  deleteCategory,[m
+[32m+[m[32m  getCategoryById,[m
+[32m+[m[32m  updateCategory,[m
+[32m+[m[32m} from '@/src/features/category/presentation/category.controller';[m
+[32m+[m
+[32m+[m[32mexport const GET = getCategoryById;[m
+[32m+[m[32mexport const PUT = updateCategory;[m
+[32m+[m[32mexport const DELETE = deleteCategory;[m
+[1mdiff --git a/app/api/categoria/route.ts b/app/api/categoria/route.ts[m
+[1mindex bd5b7e8..1ca0f6b 100644[m
+[1m--- a/app/api/categoria/route.ts[m
+[1m+++ b/app/api/categoria/route.ts[m
+[36m@@ -1,51 +1,7 @@[m
+[31m-import { NextResponse, connection } from "next/server";[m
+[31m-import { prisma } from "@/src/commons/utils/prisma";[m
+[31m-import { jsonError, prismaErrorCode } from "@/src/commons/utils/api-response";[m
+[31m-import { aroma } from "@/src/commons/localizations";[m
+[31m-import { categorySchema } from "@/src/features/category/schema";[m
+[31m-import { toCategory } from "@/src/features/category/mapper";[m
+[32m+[m[32mimport {[m
+[32m+[m[32m  createCategory,[m
+[32m+[m[32m  listCategories,[m
+[32m+[m[32m} from '@/src/features/category/presentation/category.controller';[m
+ [m
+[31m-// GET /api/categoria -> lista de categorías[m
+[31m-export async function GET() {[m
+[31m-  await connection();[m
+[31m-  try {[m
+[31m-    const rows = await prisma.categoria.findMany({ orderBy: { id: "asc" } });[m
+[31m-    return NextResponse.json(rows.map(toCategory));[m
+[31m-  } catch {[m
+[31m-    return jsonError(aroma.errors.serverError, 500);[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-// POST /api/categoria -> crea una categoría[m
+[31m-export async function POST(request: Request) {[m
+[31m-  let body: unknown;[m
+[31m-  try {[m
+[31m-    body = await request.json();[m
+[31m-  } catch {[m
+[31m-    return jsonError(aroma.errors.unprocessableContent, 422);[m
+[31m-  }[m
+[31m-[m
+[31m-  const parsed = categorySchema.safeParse(body);[m
+[31m-  if (!parsed.success) {[m
+[31m-    return jsonError(aroma.errors.unprocessableContent, 422);[m
+[31m-  }[m
+[31m-  const { name, status } = parsed.data;[m
+[31m-[m
+[31m-  try {[m
+[31m-    // evita duplicados aunque cambie mayúsculas/minúsculas[m
+[31m-    const exists = await prisma.categoria.findFirst({[m
+[31m-      where: { nombre: { equals: name, mode: "insensitive" } },[m
+[31m-    });[m
+[31m-    if (exists) return jsonError(aroma.errors.duplicated, 409);[m
+[31m-[m
+[31m-    const row = await prisma.categoria.create({[m
+[31m-      data: { nombre: name, estado: status },[m
+[31m-    });[m
+[31m-    return NextResponse.json(toCategory(row), { status: 201 });[m
+[31m-  } catch (error) {[m
+[31m-    if (prismaErrorCode(error) === "P2002") {[m
+[31m-      return jsonError(aroma.errors.duplicated, 409);[m
+[31m-    }[m
+[31m-    return jsonError(aroma.errors.created, 500);[m
+[31m-  }[m
+[31m-}[m
+[32m+[m[32mexport const GET = listCategories;[m
+[32m+[m[32mexport const POST = createCategory;[m
+[1mdiff --git a/src/commons/utils/logger.ts b/src/commons/utils/logger.ts[m
+[1mnew file mode 100644[m
+[1mindex 0000000..0c8c90e[m
+[1m--- /dev/null[m
+[1m+++ b/src/commons/utils/logger.ts[m
+[36m@@ -0,0 +1,8 @@[m
+[32m+[m[32minterface ILogger {[m
+[32m+[m[32m  error: Error;[m
+[32m+[m[32m  module: string;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport function logger({ error, module }: ILogger) {[m
+[32m+[m[32m  console.error(`[${module}] ${error.message}`);[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/features/category/application/create.use-case.ts b/src/features/category/application/create.use-case.ts[m
+[1mnew file mode 100644[m
+[1mindex 0000000..cc6ecc0[m
+[1m--- /dev/null[m
+[1m+++ b/src/features/category/application/create.use-case.ts[m
+[36m@@ -0,0 +1,10 @@[m
+[32m+[m[32mimport { ICreate } from '../domain/category.entity';[m
+[32m+[m[32mimport { CategoryRepository } from '../domain/category.repository';[m
+[32m+[m
+[32m+[m[32mexport class CreateUseCase {[m
+[32m+[m[32m  constructor(private repo: CategoryRepository) {}[m
+[32m+[m
+[32m+[m[32m  execute(data: ICreate) {[m
+[32m+[m[32m    return this.repo.create(data);[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/features/category/application/delete.use-case.ts b/src/features/category/application/delete.use-case.ts[m
+[1mnew file mode 100644[m
+[1mindex 0000000..c6902eb[m
+[1m--- /dev/null[m
+[1m+++ b/src/features/category/application/delete.use-case.ts[m
+[36m@@ -0,0 +1,9 @@[m
+[32m+[m[32mimport { CategoryRepository } from '../domain/category.repository';[m
+[32m+[m
+[32m+[m[32mexport class DeleteUseCase {[m
+[32m+[m[32m  constructor(private repo: CategoryRepository) {}[m
+[32m+[m
+[32m+[m[32m  execute(id: number) {[m
+[32m+[m[32m    return this.repo.delete(id);[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/features/category/application/get-by-id.use-case.ts b/src/features/category/application/get-by-id.use-case.ts[m
+[1mnew file mode 100644[m
+[1mindex 0000000..9e9a621[m
+[1m--- /dev/null[m
+[1m+++ b/src/features/category/application/get-by-id.use-case.ts[m
+[36m@@ -0,0 +1,9 @@[m
+[32m+[m[32mimport { CategoryRepository } from '../domain/category.repository';[m
+[32m+[m
+[32m+[m[32mexport class GetByIdUseCase {[m
+[32m+[m[32m  constructor(private repo: CategoryRepository) {}[m
+[32m+[m
+[32m+[m[32m  execute(id: number) {[m
+[32m+[m[32m    return this.repo.getById(id);[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/features/category/application/list.use-case.ts b/src/features/category/application/list.use-case.ts[m
+[1mnew file mode 100644[m
+[1mindex 0000000..34c7cee[m
+[1m--- /dev/null[m
+[1m+++ b/src/features/category/application/list.use-case.ts[m
+[36m@@ -0,0 +1,9 @@[m
+[32m+[m[32mimport { CategoryRepository } from '../domain/category.repository';[m
+[32m+[m
+[32m+[m[32mexport class ListUseCase {[m
+[32m+[m[32m  constructor(private repo: CategoryRepository) {}[m
+[32m+[m
+[32m+[m[32m  execute() {[m
+[32m+[m[32m    return this.repo.list();[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/features/category/application/update.use-case.ts b/src/features/category/application/update.use-case.ts[m
+[1mnew file mode 100644[m
+[1mindex 0000000..18cd763[m
+[1m--- /dev/null[m
+[1m+++ b/src/features/category/application/update.use-case.ts[m
+[36m@@ -0,0 +1,10 @@[m
+[32m+[m[32mimport { IUpdate } from '../domain/category.entity';[m
+[32m+[m[32mimport { CategoryRepository } from '../domain/category.repository';[m
+[32m+[m
+[32m+[m[32mexport class UpdateUseCase {[m
+[32m+[m[32m  constructor(private repo: CategoryRepository) {}[m
+[32m+[m
+[32m+[m[32m  execute(data: IUpdate) {[m
+[32m+[m[32m    return this.repo.update(data);[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/features/category/category.container.ts b/src/features/category/category.container.ts[m
+[1mnew file mode 100644[m
+[1mindex 0000000..58addb5[m
+[1m--- /dev/null[m
+[1m+++ b/src/features/category/category.container.ts[m
+[36m@@ -0,0 +1,16 @@[m
+[32m+[m[32mimport { CreateUseCase } from './application/create.use-case';[m
+[32m+[m[32mimport { DeleteUseCase } from './application/delete.use-case';[m
+[32m+[m[32mimport { GetByIdUseCase } from './application/get-by-id.use-case';[m
+[32m+[m[32mimport { ListUseCase } from './application/list.use-case';[m
+[32m+[m[32mimport { UpdateUseCase } from './application/update.use-case';[m
+[32m+[m[32mimport { PrismaCategoryRepository } from './infrastructure/prisma-category.repository';[m
+[32m+[m
+[32m+[m[32mconst repository = new PrismaCategoryRepository();[m
+[32m+[m
+[32m+[m[32mexport const categoryContainer = {[m
+[32m+[m[32m  listCategories: new ListUseCase(repository),[m
+[32m+[m[32m  createCategory: new CreateUseCase(repository),[m
+[32m+[m[32m  getCategoryById: new GetByIdUseCase(repository),[m
+[32m+[m[32m  updateCategory: new UpdateUseCase(repository),[m
+[32m+[m[32m  deleteCategory: new DeleteUseCase(repository),[m
+[32m+[m[32m};[m
+[1mdiff --git a/src/features/category/components/CategoryForm.tsx b/src/features/category/components/CategoryForm.tsx[m
+[1mnew file mode 100644[m
+[1mindex 0000000..43f7377[m
+[1m--- /dev/null[m
+[1m+++ b/src/features/category/components/CategoryForm.tsx[m
+[36m@@ -0,0 +1,74 @@[m
+[32m+[m[32m'use client';[m
+[32m+[m
+[32m+[m[32mimport { useEffect } from 'react';[m
+[32m+[m[32mimport { useForm } from 'react-hook-form';[m
+[32m+[m[32mimport { zodResolver } from '@hookform/resolvers/zod';[m
+[32m+[m[32mimport { Button, Input } from '@heroui/react';[m
+[32m+[m[32mimport { aroma } from '@/src/commons/localizations';[m
+[32m+[m[32mimport { Category } from '../domain/category.entity';[m
+[32m+[m[32mimport { categorySchema, CategoryFormData } from '../schema';[m
+[32m+[m
+[32m+[m[32minterface Props {[m
+[32m+[m[32m  category?: Category | null;[m
+[32m+[m[32m  onSuccess: () => void;[m
+[32m+[m[32m  onCancel?: () => void;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport default function CategoryForm({ category, onSuccess, onCancel }: Props) {[m
+[32m+[m[32m  const {[m
+[32m+[m[32m    register,[m
+[32m+[m[32m    handleSubmit,[m
+[32m+[m[32m    reset,[m
+[32m+[m[32m    formState: { errors, isSubmitting },[m
+[32m+[m[32m  } = useForm<CategoryFormData>({[m
+[32m+[m[32m    resolver: zodResolver(categorySchema),[m
+[32m+[m[32m    defaultValues: { name: '', url: '' },[m
+[32m+[m[32m  });[m
+[32m+[m
+[32m+[m[32m  useEffect(() => {[m
+[32m+[m[32m    reset({ name: category?.name ?? '', url: category?.url ?? '' });[m
+[32m+[m[32m  }, [category, reset]);[m
+[32m+[m
+[32m+[m[32m  const onSubmit = async (data: CategoryFormData) => {[m
+[32m+[m[32m    const isEdit = Boolean(category);[m
+[32m+[m[32m    const response = await fetch(isEdit ? `/api/categoria/${category!.id}` : '/api/categoria', {[m
+[32m+[m[32m      method: isEdit ? 'PUT' : 'POST',[m
+[32m+[m[32m      headers: { 'Content-Type': 'application/json' },[m
+[32m+[m[32m      body: JSON.stringify(data),[m
+[32m+[m[32m    });[m
+[32m+[m
+[32m+[m[32m    if (response.ok) {[m
+[32m+[m[32m      reset({ name: '', url: '' });[m
+[32m+[m[32m      onSuccess();[m
+[32m+[m[32m    }[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 md:flex-row md:items-start">[m
+[32m+[m[32m      <Input[m
+[32m+[m[32m        label={aroma.category.name}[m
+[32m+[m[32m        placeholder="Ej: Cafés calientes"[m
+[32m+[m[32m        isInvalid={!!errors.name}[m
+[32m+[m[32m        errorMessage={errors.name?.message}[m
+[32m+[m[32m        {...register('name')}[m
+[32m+[m[32m      />[m
+[32m+[m[32m      <Input[m
+[32m+[m[32m        label={aroma.category.url}[m
+[32m+[m[32m        placeholder="Ej: cafes-calientes"[m
+[32m+[m[32m        isInvalid={!!errors.url}[m
+[32m+[m[32m        errorMessage={errors.url?.message}[m
+[32m+[m[32m        {...register('url')}[m
+[32m+[m[32m      />[m
+[32m+[m[32m      <div className="flex gap-2">[m
+[32m+[m[32m        <Button type="submit" isLoading={isSubmitting} className="bg-[#16123f] text-white">[m
+[32m+[m[32m          {category ? aroma.category.save : aroma.category.create}[m
+[32m+[m[32m        </Button>[m
+[32m+[m[32m        {category && onCancel && ([m
+[32m+[m[32m          <Button variant="bordered" onPress={onCancel}>[m
+[32m+[m[32m            {aroma.category.cancel}[m
+[32m+[m[32m          </Button>[m
+[32m+[m[32m        )}[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m    </form>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/features/category/components/CategoryList.tsx b/src/features/category/components/CategoryList.tsx[m
+[1mnew file mode 100644[m
+[1mindex 0000000..4066caf[m
+[1m--- /dev/null[m
+[1m+++ b/src/features/category/components/CategoryList.tsx[m
+[36m@@ -0,0 +1,71 @@[m
+[32m+[m[32m'use client';[m
+[32m+[m
+[32m+[m[32mimport { useCallback, useEffect, useState } from 'react';[m
+[32m+[m[32mimport {[m
+[32m+[m[32m  Button,[m
+[32m+[m[32m  Table,[m
+[32m+[m[32m  TableBody,[m
+[32m+[m[32m  TableCell,[m
+[32m+[m[32m  TableColumn,[m
+[32m+[m[32m  TableHeader,[m
+[32m+[m[32m  TableRow,[m
+[32m+[m[32m} from '@heroui/react';[m
+[32m+[m[32mimport { aroma } from '@/src/commons/localizations';[m
+[32m+[m[32mimport { Category } from '../domain/category.entity';[m
+[32m+[m[32mimport CategoryForm from './CategoryForm';[m
+[32m+[m
+[32m+[m[32mexport default function CategoryList() {[m
+[32m+[m[32m  const [categories, setCategories] = useState<Category[]>([]);[m
+[32m+[m[32m  const [selected, setSelected] = useState<Category | null>(null);[m
+[32m+[m
+[32m+[m[32m  const loadCategories = useCallback(async () => {[m
+[32m+[m[32m    const response = await fetch('/api/categoria');[m
+[32m+[m[32m    if (response.ok) setCategories(await response.json());[m
+[32m+[m[32m  }, []);[m
+[32m+[m
+[32m+[m[32m  useEffect(() => {[m
+[32m+[m[32m    loadCategories();[m
+[32m+[m[32m  }, [loadCategories]);[m
+[32m+[m
+[32m+[m[32m  const handleDelete = async (id: number) => {[m
+[32m+[m[32m    const response = await fetch(`/api/categoria/${id}`, { method: 'DELETE' });[m
+[32m+[m[32m    if (response.ok) loadCategories();[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  const handleSuccess = () => {[m
+[32m+[m[32m    setSelected(null);[m
+[32m+[m[32m    loadCategories();[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <div className="flex flex-col gap-6">[m
+[32m+[m[32m      <CategoryForm category={selected} onSuccess={handleSuccess} onCancel={() => setSelected(null)} />[m
+[32m+[m
+[32m+[m[32m      <Table aria-label={aroma.category.title}>[m
+[32m+[m[32m        <TableHeader>[m
+[32m+[m[32m          <TableColumn>{aroma.category.name}</TableColumn>[m
+[32m+[m[32m          <TableColumn>{aroma.category.url}</TableColumn>[m
+[32m+[m[32m          <TableColumn>{aroma.category.actions}</TableColumn>[m
+[32m+[m[32m        </TableHeader>[m
+[32m+[m[32m        <TableBody emptyContent={aroma.category.empty}>[m
+[32m+[m[32m          {categories.map((category) => ([m
+[32m+[m[32m            <TableRow key={category.id}>[m
+[32m+[m[32m              <TableCell>{category.name}</TableCell>[m
+[32m+[m[32m              <TableCell>{category.url}</TableCell>[m
+[32m+[m[32m              <TableCell>[m
+[32m+[m[32m                <div className="flex gap-2">[m
+[32m+[m[32m                  <Button size="sm" variant="flat" onPress={() => setSelected(category)}>[m
+[32m+[m[32m                    {aroma.category.edit}[m
+[32m+[m[32m                  </Button>[m
+[32m+[m[32m                  <Button size="sm" color="danger" variant="flat" onPress={() => handleDelete(category.id)}>[m
+[32m+[m[32m                    {aroma.category.delete}[m
+[32m+[m[32m                  </Button>[m
+[32m+[m[32m                </div>[m
+[32m+[m[32m              </TableCell>[m
+[32m+[m[32m            </TableRow>[m
+[32m+[m[32m          ))}[m
+[32m+[m[32m        </TableBody>[m
+[32m+[m[32m      </Table>[m
+[32m+[m[32m    </div>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/features/category/domain/category.entity.ts b/src/features/category/domain/category.entity.ts[m
+[1mnew file mode 100644[m
+[1mindex 0000000..5ae5fe8[m
+[1m--- /dev/null[m
+[1m+++ b/src/features/category/domain/category.entity.ts[m
+[36m@@ -0,0 +1,17 @@[m
+[32m+[m[32mexport type Category = {[m
+[32m+[m[32m  id: number;[m
+[32m+[m[32m  name: string;[m
+[32m+[m[32m  url: string;[m
+[32m+[m[32m  createdAt: Date;[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32mexport interface ICreate {[m
+[32m+[m[32m  name: string;[m
+[32m+[m[32m  url: string;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport interface IUpdate {[m
+[32m+[m[32m  id: number;[m
+[32m+[m[32m  name: string;[m
+[32m+[m[32m  url: string;[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/features/category/domain/category.repository.ts b/src/features/category/domain/category.repository.ts[m
+[1mnew file mode 100644[m
+[1mindex 0000000..4d0eb9a[m
+[1m--- /dev/null[m
+[1m+++ b/src/features/category/domain/category.repository.ts[m
+[36m@@ -0,0 +1,9 @@[m
+[32m+[m[32mimport { Category, ICreate, IUpdate } from './category.entity';[m
+[32m+[m
+[32m+[m[32mexport interface CategoryRepository {[m
+[32m+[m[32m  list(): Promise<Category[]>;[m
+[32m+[m[32m  create(data: ICreate): Promise<boolean>;[m
+[32m+[m[32m  getById(id: number): Promise<Category | null>;[m
+[32m+[m[32m  update(data: IUpdate): Promise<boolean>;[m
+[32m+[m[32m  delete(id: number): Promise<boolean>;[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/features/category/infrastructure/prisma-category.repository.ts b/src/features/category/infrastructure/prisma-category.repository.ts[m
+[1mnew file mode 100644[m
+[1mindex 0000000..646789b[m
+[1m--- /dev/null[m
+[1m+++ b/src/features/category/infrastructure/prisma-category.repository.ts[m
+[36m@@ -0,0 +1,30 @@[m
+[32m+[m[32mimport { prisma } from '@/src/commons/utils/prisma';[m
+[32m+[m[32mimport { Category, ICreate, IUpdate } from '../domain/category.entity';[m
+[32m+[m[32mimport { CategoryRepository } from '../domain/category.repository';[m
+[32m+[m
+[32m+[m[32mexport class PrismaCategoryRepository implements CategoryRepository {[m
+[32m+[m[32m  async list(): Promise<Category[]> {[m
+[32m+[m[32m    return prisma.categoria.findMany({ orderBy: { id: 'asc' } });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  async create(data: ICreate): Promise<boolean> {[m
+[32m+[m[32m    await prisma.categoria.create({ data });[m
+[32m+[m[32m    return true;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  async getById(id: number): Promise<Category | null> {[m
+[32m+[m[32m    return prisma.categoria.findUnique({ where: { id } });[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  async update(data: IUpdate): Promise<boolean> {[m
+[32m+[m[32m    const { id, ...fields } = data;[m
+[32m+[m[32m    await prisma.categoria.update({ where: { id }, data: fields });[m
+[32m+[m[32m    return true;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  async delete(id: number): Promise<boolean> {[m
+[32m+[m[32m    await prisma.categoria.delete({ where: { id } });[m
+[32m+[m[32m    return true;[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+[1mdiff --git a/src/features/category/presentation/category.controller.ts b/src/features/category/presentation/category.controller.ts[m
+[1mnew file mode 100644[m
+[1mindex 0000000..c1b6551[m
+[1m--- /dev/null[m
+[1m+++ b/src/features/category/presentation/category.controller.ts[m
+[36m@@ -0,0 +1,77 @@[m
+[32m+[m[32mimport { NextResponse } from 'next/server';[m
+[32m+[m[32mimport { aroma } from '@/src/commons/localizations';[m
+[32m+[m[32mimport { logger } from '@/src/commons/utils/logger';[m
+[32m+[m[32mimport { IRequestParams } from '@/src/commons/interfaces';[m
+[32m+[m[32mimport { categoryContainer } from '../category.container';[m
+[32m+[m[32mimport { categorySchema } from '../schema';[m
+[32m+[m
+[32m+[m[32mexport async function listCategories() {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const categories = await categoryContainer.listCategories.execute();[m
+[32m+[m[32m    return NextResponse.json(categories);[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    logger({ error: error as Error, module: 'listCategories' });[m
+[32m+[m[32m    return NextResponse.json({ error: aroma.errors.serverError }, { status: 500 });[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport async function createCategory(req: Request) {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const bodyData = await req.json();[m
+[32m+[m[32m    const validation = categorySchema.safeParse(bodyData);[m
+[32m+[m[32m    if (!validation.success) {[m
+[32m+[m[32m      return NextResponse.json({ error: aroma.errors.unprocessableContent }, { status: 422 });[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    const status = await categoryContainer.createCategory.execute(validation.data);[m
+[32m+[m[32m    return NextResponse.json({ success: status });[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    logger({ error: error as Error, module: 'createCategory' });[m
+[32m+[m[32m    return NextResponse.json({ error: aroma.errors.serverError }, { status: 500 });[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport async function getCategoryById(req: Request, { params }: IRequestParams) {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const { id } = await params;[m
+[32m+[m[32m    const category = await categoryContainer.getCategoryById.execute(Number(id));[m
+[32m+[m[32m    if (!category) {[m
+[32m+[m[32m      return NextResponse.json({ error: aroma.errors.notFound }, { status: 404 });[m
+[32m+[m[32m    }[m
+[32m+[m[32m    return NextResponse.json(category);[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    logger({ error: error as Error, module: 'getCategoryById' });[m
+[32m+[m[32m    return NextResponse.json({ error: aroma.errors.serverError }, { status: 500 });[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport async function updateCategory(req: Request, { params }: IRequestParams) {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const { id } = await params;[m
+[32m+[m[32m    const bodyData = await req.json();[m
+[32m+[m[32m    const validation = categorySchema.safeParse(bodyData);[m
+[32m+[m[32m    if (!validation.success) {[m
+[32m+[m[32m      return NextResponse.json({ error: aroma.errors.unprocessableContent }, { status: 422 });[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    const status = await categoryContainer.updateCategory.execute({[m
+[32m+[m[32m      id: Number(id),[m
+[32m+[m[32m      ...validation.data,[m
+[32m+[m[32m    });[m
+[32m+[m[32m    return NextResponse.json({ success: status });[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    logger({ error: error as Error, module: 'updateCategory' });[m
+[32m+[m[32m    return NextResponse.json({ error: aroma.errors.serverError }, { status: 500 });[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport async function deleteCategory(req: Request, { params }: IRequestParams) {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    const { id } = await params;[m
+[32m+[m[32m    const status = await categoryContainer.deleteCategory.execute(Number(id));[m
+[32m+[m[32m    return NextResponse.json({ success: status });[m
+[32m+[m[32m  } catch (error) {[m
+[32m+[m[32m    logger({ error: error as Error, module: 'deleteCategory' });[m
+[32m+[m[32m    return NextResponse.json({ error: aroma.errors.serverError }, { status: 500 });[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/features/category/schema.ts b/src/features/category/schema.ts[m
+[1mindex e4fd9af..51089f7 100644[m
+[1m--- a/src/features/category/schema.ts[m
+[1m+++ b/src/features/category/schema.ts[m
+[36m@@ -1,11 +1,8 @@[m
+[31m-import { z } from "zod";[m
+[31m-import { aroma } from "@/src/commons/localizations";[m
+[32m+[m[32mimport { z } from 'zod';[m
+ [m
+ export const categorySchema = z.object({[m
+[31m-  name: z[m
+[31m-    .string()[m
+[31m-    .trim()[m
+[31m-    .min(2, aroma.errors.smallName)[m
+[31m-    .max(60, aroma.errors.bigName),[m
+[31m-  status: z.enum(["ACTIVO", "INACTIVO"]),[m
+[32m+[m[32m  name: z.string().trim().min(1, 'El nombre es obligatorio').max(60, 'Máximo 60 caracteres'),[m
+[32m+[m[32m  url: z.string().trim().min(1, 'La URL es obligatoria').max(120, 'Máximo 120 caracteres'),[m
+ });[m
+[32m+[m
+[32m+[m[32mexport type CategoryFormData = z.infer<typeof categorySchema>;[m
