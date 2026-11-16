@@ -1,6 +1,6 @@
 import EncabezadoSeccion from "@/src/commons/componets/EncabezadoSeccion";
 import CardAroma from "@/src/commons/componets/CardAroma";
-import CategoryForm from "@/src/features/category/componets/CategoryForm";
+import CategoryFormLazy from "@/src/features/category/componets/CategoryFormLazy";
 import { aroma } from "@/src/commons/localizations";
 
 export default function Page() {
@@ -12,7 +12,7 @@ export default function Page() {
         subtitulo={aroma.category.subtitle}
       />
       <CardAroma className="max-w-xl">
-        <CategoryForm />
+        <CategoryFormLazy />
       </CardAroma>
     </>
   );

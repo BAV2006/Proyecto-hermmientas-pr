@@ -4,10 +4,14 @@ import CrudLayout from "@/src/commons/componets/CrudLayout";
 import TableAroma from "@/src/commons/componets/TableAroma";
 import Badge from "@/src/commons/componets/Badge";
 import AccionesFila from "@/src/commons/componets/AccionesFila";
+import useSWR from "swr";
 import { aroma } from "@/src/commons/localizations";
 import { CATEGORY_API } from "@/src/commons/constants";
 import { useApiList, useDeleteDialog, useSearchPaging } from "@/src/commons/utils/hooks";
 import type { ICategory } from "@/src/commons/interfaces";
+import { apiFetch } from "@/src/commons/utils/api";
+
+
 
 const columns = [
   { key: "id", etiqueta: aroma.labels.id.toUpperCase() },

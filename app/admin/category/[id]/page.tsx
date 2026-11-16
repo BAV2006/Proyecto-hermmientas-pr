@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import EncabezadoSeccion from "@/src/commons/componets/EncabezadoSeccion";
 import CardAroma from "@/src/commons/componets/CardAroma";
+import FormSkeleton from "@/src/commons/componets/FormSkeleton";
 import CategoryForm from "@/src/features/category/componets/CategoryForm";
 import { categoryContainer } from "@/src/features/category/category.container";
 import { aroma } from "@/src/commons/localizations";
@@ -31,7 +32,7 @@ export default function Page({ params }: { params: Params }) {
     <>
       <EncabezadoSeccion icono="grid" titulo={aroma.category.edit} subtitulo={aroma.category.subtitle} />
       <CardAroma className="max-w-xl">
-        <Suspense fallback={<p className="text-sm text-gray-500">{aroma.messages.loading}...</p>}>
+        <Suspense fallback={<FormSkeleton />}>
           <CategoryEditor params={params} />
         </Suspense>
       </CardAroma>

@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^6.0.2",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
+    "@vercel/blob": "^2.9.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^18.0.9",
     "lucide-react": "^1.63.0",
@@ -22,6 +23,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "^7.91.0",
+    "swr": "^2.5.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {

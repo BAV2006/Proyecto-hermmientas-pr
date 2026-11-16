@@ -1,5 +1,5 @@
 "use client";
-
+import TableSkeleton from "./TableSkeleton";
 import type { ReactNode } from "react";
 import EncabezadoSeccion from "./EncabezadoSeccion";
 import Buscador from "./Buscador";
@@ -56,7 +56,7 @@ export default function CrudLayout(props: Props) {
       </CardAroma>
 
       {props.loading ? (
-        <p className="text-sm text-gray-500">{aroma.messages.loading}...</p>
+        <TableSkeleton />
       ) : props.loadError ? (
         <FormMessages error={props.loadError} />
       ) : props.isEmpty ? (

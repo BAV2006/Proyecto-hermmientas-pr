@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import EncabezadoSeccion from "@/src/commons/componets/EncabezadoSeccion";
 import CardAroma from "@/src/commons/componets/CardAroma";
+import FormSkeleton from "@/src/commons/componets/FormSkeleton";
 import ProductForm from "@/src/features/products/componets/ProductForm";
 import { categoryContainer } from "@/src/features/category/category.container";
 import { aroma } from "@/src/commons/localizations";
@@ -25,7 +26,7 @@ export default function Page() {
     <>
       <EncabezadoSeccion icono="package" titulo={aroma.products.new} subtitulo={aroma.products.subtitle} />
       <CardAroma className="max-w-xl">
-        <Suspense fallback={<p className="text-sm text-gray-500">{aroma.messages.loading}...</p>}>
+        <Suspense fallback={<FormSkeleton />}>
           <NewProductForm />
         </Suspense>
       </CardAroma>
