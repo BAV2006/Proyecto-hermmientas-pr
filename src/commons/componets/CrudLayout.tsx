@@ -1,12 +1,15 @@
 "use client";
-import TableSkeleton from "./TableSkeleton";
+
 import type { ReactNode } from "react";
+import Link from "next/link";
 import EncabezadoSeccion from "./EncabezadoSeccion";
 import Buscador from "./Buscador";
 import CardAroma from "./CardAroma";
 import Boton from "./Boton";
 import ModalConfirmarEliminar from "./ModalConfirmarEliminar";
 import FormMessages from "./FormMessages";
+import TableSkeleton from "./TableSkeleton";
+import RenderIconAroma from "./RenderIconAroma";
 import { aroma } from "@/src/commons/localizations";
 
 interface Props {
@@ -22,7 +25,8 @@ interface Props {
   loadError: string | null;
   notice: string | null;
   actionError: string | null;
-  isEmpty: boolean;
+  hasRecords: boolean; // ¿existe al menos un registro en la base de datos?
+  isEmpty: boolean; // ¿la búsqueda actual no encontró nada?
   currentPage: number;
   totalPages: number;
   onPage: (page: number) => void;
@@ -33,7 +37,8 @@ interface Props {
   children: ReactNode; // la tabla
 }
 
-// Estructura común de las listas: encabezado, buscador, estados, tabla, paginación y borrado
+// Estructura común de las listas:
+// cargando -> skeleton | error | sin registros -> "no hay registros" + crear | tabla
 export default function CrudLayout(props: Props) {
   return (
     <>
@@ -59,9 +64,22 @@ export default function CrudLayout(props: Props) {
         <TableSkeleton />
       ) : props.loadError ? (
         <FormMessages error={props.loadError} />
+      ) : !props.hasRecords ? (
+        <CardAroma>
+          <div className="flex flex-col items-center gap-3 py-6">
+            <p className="text-sm text-gray-500">{aroma.messages.withoutRows}</p>
+            <Link
+              href={props.newHref}
+              className="inline-flex items-center gap-2 rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy/90"
+            >
+              <RenderIconAroma name="plus" size={16} />
+              {props.newLabel}
+            </Link>
+          </div>
+        </CardAroma>
       ) : props.isEmpty ? (
         <CardAroma>
-          <p className="text-center text-sm text-gray-500">{aroma.messages.withoutRows}</p>
+          <p className="py-4 text-center text-sm text-gray-500">{aroma.messages.noResults}</p>
         </CardAroma>
       ) : (
         <>

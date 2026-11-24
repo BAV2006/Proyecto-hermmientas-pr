@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { mutate } from "swr";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -21,8 +21,6 @@ interface Props {
 }
 
 export default function CategoryForm({ category }: Props) {
-  const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -30,7 +28,8 @@ export default function CategoryForm({ category }: Props) {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    // isSubmitting vale true desde el mismo clic hasta que termina el envío
+    formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(categorySchema),
     defaultValues: {
@@ -41,7 +40,6 @@ export default function CategoryForm({ category }: Props) {
 
   const onSubmit = async (data: FormValues) => {
     try {
-      setIsSubmitting(true);
       setServerError(null);
       setSuccess(null);
 
@@ -53,9 +51,9 @@ export default function CategoryForm({ category }: Props) {
         throw new Error(category ? aroma.errors.updated : aroma.errors.created);
       }
 
+      await mutate(CATEGORY_API); // la lista se actualiza sola
       setSuccess(category ? aroma.success.updated : aroma.success.created);
       if (!category) reset({ name: "", status: "ACTIVO" });
-      router.refresh();
     } catch (error) {
       setServerError(
         error instanceof Error
@@ -64,8 +62,6 @@ export default function CategoryForm({ category }: Props) {
             ? aroma.errors.updated
             : aroma.errors.created
       );
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -86,6 +82,7 @@ export default function CategoryForm({ category }: Props) {
         <FormMessages error={serverError} success={success} />
 
         <div className="flex items-center gap-3">
+          {/* El botón desaparece al hacer clic: no se puede enviar dos veces */}
           {isSubmitting ? (
             <p>{aroma.messages.processing}</p>
           ) : (

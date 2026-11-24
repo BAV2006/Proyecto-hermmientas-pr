@@ -33,3 +33,11 @@ export interface IProduct {
 export interface IRequestParams {
   params: Promise<{ id: string }>;
 }
+
+// Patrón de respuesta de todas las APIs
+// éxito: { success: true, data? }   error: { success: false, message }
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  message?: string;
+}

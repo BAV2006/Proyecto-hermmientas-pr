@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { mutate } from "swr";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,8 +30,6 @@ const emptyValues: FormValues = {
 };
 
 export default function UserForm({ user }: Props) {
-  const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -42,7 +40,7 @@ export default function UserForm({ user }: Props) {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver,
     defaultValues: user
@@ -52,7 +50,6 @@ export default function UserForm({ user }: Props) {
 
   const onSubmit = async (data: FormValues) => {
     try {
-      setIsSubmitting(true);
       setServerError(null);
       setSuccess(null);
 
@@ -64,15 +61,13 @@ export default function UserForm({ user }: Props) {
         throw new Error(user ? aroma.errors.updated : aroma.errors.created);
       }
 
+      await mutate(USER_API); // la lista se actualiza sola
       setSuccess(user ? aroma.success.updated : aroma.success.created);
       reset(user ? { ...data, password: "", confirmPassword: "" } : emptyValues);
-      router.refresh();
     } catch (error) {
       setServerError(
         error instanceof Error ? error.message : user ? aroma.errors.updated : aroma.errors.created
       );
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -117,6 +112,7 @@ export default function UserForm({ user }: Props) {
         <FormMessages error={serverError} success={success} />
 
         <div className="flex items-center gap-3">
+          {/* El botón desaparece al hacer clic: no se puede enviar dos veces */}
           {isSubmitting ? (
             <p>{aroma.messages.processing}</p>
           ) : (

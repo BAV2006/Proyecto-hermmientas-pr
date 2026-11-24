@@ -4,14 +4,10 @@ import CrudLayout from "@/src/commons/componets/CrudLayout";
 import TableAroma from "@/src/commons/componets/TableAroma";
 import Badge from "@/src/commons/componets/Badge";
 import AccionesFila from "@/src/commons/componets/AccionesFila";
-import useSWR from "swr";
 import { aroma } from "@/src/commons/localizations";
 import { CATEGORY_API } from "@/src/commons/constants";
 import { useApiList, useDeleteDialog, useSearchPaging } from "@/src/commons/utils/hooks";
 import type { ICategory } from "@/src/commons/interfaces";
-import { apiFetch } from "@/src/commons/utils/api";
-
-
 
 const columns = [
   { key: "id", etiqueta: aroma.labels.id.toUpperCase() },
@@ -21,11 +17,9 @@ const columns = [
 ];
 
 export default function CategoryList() {
-  const { items, setItems, loading, error } = useApiList<ICategory>(CATEGORY_API);
+  const { items, loading, error } = useApiList<ICategory>(CATEGORY_API);
   const paging = useSearchPaging(items, (c, q) => c.name.toLowerCase().includes(q));
-  const del = useDeleteDialog<ICategory>(CATEGORY_API, (id) =>
-    setItems((prev) => prev.filter((c) => c.id !== id))
-  );
+  const del = useDeleteDialog<ICategory>(CATEGORY_API);
 
   return (
     <CrudLayout
@@ -41,6 +35,7 @@ export default function CategoryList() {
       loadError={error}
       notice={del.notice}
       actionError={del.error}
+      hasRecords={items.length > 0}
       isEmpty={paging.total === 0}
       currentPage={paging.currentPage}
       totalPages={paging.totalPages}

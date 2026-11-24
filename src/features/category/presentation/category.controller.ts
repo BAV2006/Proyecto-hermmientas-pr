@@ -1,7 +1,7 @@
 import { NextResponse, connection } from 'next/server';
 import { categoryContainer } from '../category.container';
 import { aroma } from '@/src/commons/localizations';
-import { errorResponse, handleError, parseId } from '@/src/commons/utils/api-response';
+import { errorResponse, handleError, parseId, successResponse } from '@/src/commons/utils/api-response';
 import type { IRequestParams } from '@/src/commons/interfaces';
 import { categorySchema } from '../schema';
 
@@ -9,7 +9,7 @@ export async function listCategories() {
   try {
     await connection();
     const items = await categoryContainer.listCategories.execute();
-    return NextResponse.json(items);
+    return successResponse(items);
   } catch (error) {
     return handleError(error, 'listCategories');
   }
@@ -38,7 +38,7 @@ export async function getCategoryById(_req: Request, { params }: IRequestParams)
     const item = await categoryContainer.getCategoryById.execute(id);
     if (!item) return errorResponse(aroma.errors.notFound, 404);
 
-    return NextResponse.json(item);
+    return successResponse(item);
   } catch (error) {
     return handleError(error, 'getCategoryById');
   }

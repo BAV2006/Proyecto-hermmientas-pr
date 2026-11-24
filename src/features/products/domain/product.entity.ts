@@ -21,9 +21,9 @@ export interface ICreate {
   price: number;
   stock: number;
   status: Status;
-  image: string;
   categoryId: number;
   featured: boolean;
+  image?: File; // si viene, se sube a Vercel Blob y se guarda su enlace
 }
 
 export interface IUpdate extends ICreate {

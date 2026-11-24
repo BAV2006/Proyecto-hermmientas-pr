@@ -21,14 +21,12 @@ const columns = [
 const roleLabel = (role: string) => ROLE_OPTIONS.find((r) => r.value === role)?.label ?? role;
 
 export default function UserList() {
-  const { items, setItems, loading, error } = useApiList<IUser>(USER_API);
+  const { items, loading, error } = useApiList<IUser>(USER_API);
   const paging = useSearchPaging(
     items,
     (u, q) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
   );
-  const del = useDeleteDialog<IUser>(USER_API, (id) =>
-    setItems((prev) => prev.filter((u) => u.id !== id))
-  );
+  const del = useDeleteDialog<IUser>(USER_API);
 
   return (
     <CrudLayout
@@ -44,6 +42,7 @@ export default function UserList() {
       loadError={error}
       notice={del.notice}
       actionError={del.error}
+      hasRecords={items.length > 0}
       isEmpty={paging.total === 0}
       currentPage={paging.currentPage}
       totalPages={paging.totalPages}

@@ -1,4 +1,4 @@
-import { HttpMethod } from '../types';
+import { HttpMethod } from '../types/httpmethods';
 
 export async function apiFetch<T>(
   url: string,
@@ -9,14 +9,12 @@ export async function apiFetch<T>(
   } = {}
 ): Promise<T> {
   const { method = "GET", body, headers } = options;
+  const isFormData = body instanceof FormData;
 
   const response = await fetch(url, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    headers: isFormData ? headers : { "Content-Type": "application/json", ...headers },
+    body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });
 

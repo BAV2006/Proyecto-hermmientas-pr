@@ -62,6 +62,8 @@ export const aroma = {
     image: "Imagen (enlace o emoji)",
     category: "Categoría",
     featured: "Producto destacado",
+    uploadImage: "Subir imagen",
+    changeImage: "Cambiar imagen",
   },
   messages: {
     processing: 'Procesando',
@@ -69,6 +71,8 @@ export const aroma = {
     // agregados
     loading: 'Cargando',
     withoutCategories: 'Primero crea una categoría para poder registrar productos',
+    noResults: 'No se encontraron resultados para la búsqueda',
+    uploading: 'Subiendo imagen',
   },
   errors: {
     serverError: 'Error al procesar la solicitud',
@@ -95,6 +99,10 @@ export const aroma = {
     invalidImage: 'Usa un enlace que empiece con http(s) o un emoji',
     invalidCategory: 'Selecciona una categoría válida',
     bigText: 'El texto es demasiado largo',
+    uploadFailed: 'No se pudo subir la imagen',
+    uploadNotConfigured: 'La subida de imágenes no está configurada (falta BLOB_READ_WRITE_TOKEN en el .env)',
+    invalidFileType: 'La imagen debe ser PNG, JPG o WEBP',
+    fileTooBig: 'La imagen no puede pesar más de 2 MB',
   },
   success: {
     created: 'Registro creado correctamente',

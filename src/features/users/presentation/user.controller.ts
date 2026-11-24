@@ -1,7 +1,7 @@
 import { NextResponse, connection } from 'next/server';
 import { userContainer } from '../user.container';
 import { aroma } from '@/src/commons/localizations';
-import { errorResponse, handleError, parseId } from '@/src/commons/utils/api-response';
+import { errorResponse, handleError, parseId, successResponse } from '@/src/commons/utils/api-response';
 import type { IRequestParams } from '@/src/commons/interfaces';
 import { userCreateSchema, userUpdateSchema } from '../schema';
 
@@ -9,7 +9,7 @@ export async function listUsers() {
   try {
     await connection();
     const items = await userContainer.listUsers.execute();
-    return NextResponse.json(items);
+    return successResponse(items);
   } catch (error) {
     return handleError(error, 'listUsers');
   }
@@ -38,7 +38,7 @@ export async function getUserById(_req: Request, { params }: IRequestParams) {
     const item = await userContainer.getUserById.execute(id);
     if (!item) return errorResponse(aroma.errors.notFound, 404);
 
-    return NextResponse.json(item);
+    return successResponse(item);
   } catch (error) {
     return handleError(error, 'getUserById');
   }

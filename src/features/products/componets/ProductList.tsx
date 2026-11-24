@@ -5,9 +5,11 @@ import TableAroma from "@/src/commons/componets/TableAroma";
 import Badge from "@/src/commons/componets/Badge";
 import AccionesFila from "@/src/commons/componets/AccionesFila";
 import { aroma } from "@/src/commons/localizations";
+import Image from "next/image";
 import { PRODUCT_API } from "@/src/commons/constants";
 import { formatoPrecio } from "@/src/commons/data/datosEstaticos";
 import { useApiList, useDeleteDialog, useSearchPaging } from "@/src/commons/utils/hooks";
+import { isBlobUrl, isUrl } from "@/src/commons/utils/image";
 import type { IProduct } from "@/src/commons/interfaces";
 
 const columns = [
@@ -20,17 +22,13 @@ const columns = [
   { key: "actions", etiqueta: aroma.labels.actions.toUpperCase(), alineacion: "end" as const },
 ];
 
-const isUrl = (value: string) => /^https?:\/\//i.test(value);
-
 export default function ProductList() {
-  const { items, setItems, loading, error } = useApiList<IProduct>(PRODUCT_API);
+  const { items, loading, error } = useApiList<IProduct>(PRODUCT_API);
   const paging = useSearchPaging(
     items,
     (p, q) => p.name.toLowerCase().includes(q) || p.categoryName.toLowerCase().includes(q)
   );
-  const del = useDeleteDialog<IProduct>(PRODUCT_API, (id) =>
-    setItems((prev) => prev.filter((p) => p.id !== id))
-  );
+  const del = useDeleteDialog<IProduct>(PRODUCT_API);
 
   return (
     <CrudLayout
@@ -46,6 +44,7 @@ export default function ProductList() {
       loadError={error}
       notice={del.notice}
       actionError={del.error}
+      hasRecords={items.length > 0}
       isEmpty={paging.total === 0}
       currentPage={paging.currentPage}
       totalPages={paging.totalPages}
@@ -65,7 +64,17 @@ export default function ProductList() {
           if (key === "name")
             return (
               <span className="flex items-center gap-3 font-semibold">
-                {isUrl(p.image) ? (
+                {isBlobUrl(p.image) ? (
+                  // imagen subida a Vercel Blob: se muestra con next/image
+                  <Image
+                    src={p.image}
+                    alt={p.name}
+                    width={32}
+                    height={32}
+                    className="h-8 w-8 rounded-md object-cover"
+                  />
+                ) : isUrl(p.image) ? (
+                  // enlace externo antiguo: next/image no lo permite sin configurarlo
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.image} alt={p.name} className="h-8 w-8 rounded-md object-cover" />
                 ) : (

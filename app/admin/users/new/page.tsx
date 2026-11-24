@@ -1,6 +1,6 @@
 import EncabezadoSeccion from "@/src/commons/componets/EncabezadoSeccion";
 import CardAroma from "@/src/commons/componets/CardAroma";
-import UserFormLazy from "@/src/features/users/componets/UserFormLazy";
+import UserForm from "@/src/features/users/componets/UserForm";
 import { aroma } from "@/src/commons/localizations";
 
 export default function Page() {
@@ -8,7 +8,7 @@ export default function Page() {
     <>
       <EncabezadoSeccion icono="users" titulo={aroma.users.new} subtitulo={aroma.users.subtitle} />
       <CardAroma className="max-w-xl">
-        <UserFormLazy />
+        <UserForm />
       </CardAroma>
     </>
   );

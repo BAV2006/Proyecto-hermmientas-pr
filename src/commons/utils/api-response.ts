@@ -3,9 +3,14 @@ import { aroma } from '@/src/commons/localizations';
 import { AppError } from './errors';
 import { logger } from './logger';
 
-// Respuesta de error con el formato { message } que lee apiFetch
+// Respuesta correcta: { success: true, data }
+export function successResponse<T>(data: T, status = 200) {
+  return NextResponse.json({ success: true, data }, { status });
+}
+
+// Respuesta de error: { success: false, message } (apiFetch lee el message)
 export function errorResponse(message: string, status: number) {
-  return NextResponse.json({ message }, { status });
+  return NextResponse.json({ success: false, message }, { status });
 }
 
 // Convierte cualquier error del servidor en una respuesta HTTP
